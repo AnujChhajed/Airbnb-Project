@@ -29,7 +29,7 @@ exports.createBooking = async (req, res, next) => {
     // Check for double booking conflicts
     const conflict = await Booking.findOne({
       listing: listingId,
-      status: 'confirmed',
+      status: { $in: ['approved', 'confirmed'] },
       $or: [
         { checkIn: { $lte: checkOutDate }, checkOut: { $gte: checkInDate } },
       ],
@@ -89,7 +89,7 @@ exports.getHostReservations = async (req, res, next) => {
     const reservations = await Booking.find({ listing: { $in: listingIds } })
       .populate('listing')
       .populate('user', 'name email contactNumber')
-      .sort({ checkIn: 1 });
+      .sort({ createdAt: -1 });
 
     res.status(200).json({ reservations });
   } catch (error) {
@@ -103,8 +103,8 @@ exports.getHostReservations = async (req, res, next) => {
 exports.updateBookingStatus = async (req, res, next) => {
   const { status } = req.body;
 
-  if (!['confirmed', 'cancelled'].includes(status)) {
-    return res.status(400).json({ message: 'Invalid status value. Must be confirmed or cancelled.' });
+  if (!['approved', 'cancelled'].includes(status)) {
+    return res.status(400).json({ message: 'Invalid status value. Must be approved or cancelled.' });
   }
 
   try {
@@ -122,6 +122,48 @@ exports.updateBookingStatus = async (req, res, next) => {
     await booking.save();
 
     res.status(200).json({ message: `Booking status updated to ${status} successfully`, booking });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// @desc    Pay for an approved booking (User only)
+// @route   PATCH /api/bookings/:id/pay
+// @access  Private/User
+exports.payBooking = async (req, res, next) => {
+  const { paymentMethod } = req.body;
+
+  if (!['online', 'offline'].includes(paymentMethod)) {
+    return res.status(400).json({ message: 'Invalid payment method. Must be online or offline.' });
+  }
+
+  try {
+    const booking = await Booking.findById(req.params.id).populate('listing');
+    if (!booking) {
+      return res.status(404).json({ message: 'Booking not found' });
+    }
+
+    // Ensure the booking belongs to the logged in user
+    if (booking.user.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Unauthorized. You do not own this booking.' });
+    }
+
+    // Ensure booking is approved by the host before paying
+    if (booking.status !== 'approved') {
+      return res.status(400).json({ message: 'Booking must be approved by the host before payment.' });
+    }
+
+    booking.paymentMethod = paymentMethod;
+    if (paymentMethod === 'online') {
+      booking.paymentStatus = 'paid';
+    } else {
+      booking.paymentStatus = 'unpaid';
+    }
+    booking.status = 'confirmed';
+
+    await booking.save();
+
+    res.status(200).json({ message: 'Booking paid successfully', booking });
   } catch (error) {
     next(error);
   }

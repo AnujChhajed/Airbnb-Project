@@ -97,6 +97,96 @@ const HostDashboard = () => {
   };
 
 
+  const pendingRequests = reservations.filter(r => r.status === 'pending');
+  const reservationHistory = reservations.filter(r => r.status !== 'pending');
+
+  const renderReservationCard = (res) => {
+    const coverPhoto = res.listing?.photos && res.listing.photos.length > 0
+      ? `http://localhost:3000${res.listing.photos[0]}`
+      : 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=600&q=80';
+
+    return (
+      <div key={res._id} className="bg-white border border-neutral-200/60 rounded-3xl p-5 shadow-sm hover:shadow-md transition duration-300 flex flex-col md:flex-row gap-5 items-center relative overflow-hidden">
+        {res.status === 'pending' && (
+          <div className="absolute top-0 left-0 bg-rose-500 text-white font-extrabold text-[9px] px-3.5 py-1 rounded-br-2xl uppercase tracking-wider animate-pulse">
+            New Request
+          </div>
+        )}
+        <div className="w-full md:w-36 aspect-[4/3] rounded-2xl overflow-hidden bg-neutral-100 shrink-0">
+          <img src={coverPhoto} className="w-full h-full object-cover" />
+        </div>
+        <div className="flex-1 text-center md:text-left space-y-2">
+          <div>
+            <span className="text-[10px] text-neutral-400 font-extrabold uppercase tracking-wider">Property Booked</span>
+            <h3 className="font-extrabold text-neutral-800 text-base">{res.listing?.houseName}</h3>
+          </div>
+          
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs font-semibold text-neutral-700 bg-neutral-50 border border-neutral-100 p-3 rounded-xl">
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider">Guest Name</span>
+              <span>{res.user?.name}</span>
+            </div>
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider">Guest Contact</span>
+              <span className="truncate">{res.user?.email}</span>
+            </div>
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider">Dates</span>
+              <span>{new Date(res.checkIn).toLocaleDateString()} - {new Date(res.checkOut).toLocaleDateString()}</span>
+            </div>
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider">Guests</span>
+              <span>{res.guests}</span>
+            </div>
+          </div>
+        </div>
+        
+        <div className="text-center md:text-right shrink-0 flex flex-col gap-2 items-center md:items-end justify-center md:border-l md:border-neutral-100 md:pl-8 py-3 w-full md:w-auto">
+          <span className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider">Payout Amount</span>
+          <span className="text-lg font-black text-neutral-800">Rs {res.totalPrice}</span>
+          
+          {res.status === 'pending' ? (
+            <div className="flex gap-1.5 mt-1.5 w-full justify-center md:justify-end">
+              <button
+                onClick={() => handleUpdateStatus(res._id, 'approved')}
+                className="bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold text-[10px] px-3.5 py-1.5 rounded-full uppercase tracking-wider cursor-pointer transition active:scale-[0.97]"
+              >
+                Approve
+              </button>
+              <button
+                onClick={() => handleUpdateStatus(res._id, 'cancelled')}
+                className="bg-rose-500 hover:bg-rose-600 text-white font-extrabold text-[10px] px-3.5 py-1.5 rounded-full uppercase tracking-wider cursor-pointer transition active:scale-[0.97]"
+              >
+                Decline
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center md:items-end gap-1 mt-1">
+              <span className={`font-bold text-[10px] px-3.5 py-1 rounded-full uppercase tracking-wider border ${
+                res.status === 'confirmed'
+                  ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                  : res.status === 'approved'
+                  ? 'bg-blue-50 text-blue-600 border-blue-100'
+                  : 'bg-rose-50 text-rose-500 border-rose-100'
+              }`}>
+                {res.status === 'confirmed'
+                  ? 'Confirmed'
+                  : res.status === 'approved'
+                  ? 'Approved (Unpaid)'
+                  : 'Declined'}
+              </span>
+              {res.status === 'confirmed' && (
+                <span className="text-[9px] text-neutral-400 font-bold uppercase tracking-wider">
+                  Payment: {res.paymentMethod === 'online' ? 'Online Card' : 'Pay Offline'}
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <main className="container mx-auto px-4 md:px-8 max-w-7xl mt-8">
       {/* Profile Header */}
@@ -232,75 +322,40 @@ const HostDashboard = () => {
             </p>
           </div>
         ) : (
-          <div className="space-y-4">
-            {reservations.map(res => {
-              const coverPhoto = res.listing?.photos && res.listing.photos.length > 0
-                ? `http://localhost:3000${res.listing.photos[0]}`
-                : 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=600&q=80';
-
-              return (
-                <div key={res._id} className="bg-white border border-neutral-200/60 rounded-3xl p-5 shadow-sm flex flex-col md:flex-row gap-5 items-center">
-                  <div className="w-full md:w-36 aspect-[4/3] rounded-2xl overflow-hidden bg-neutral-100 shrink-0">
-                    <img src={coverPhoto} className="w-full h-full object-cover" />
-                  </div>
-                  <div className="flex-1 text-center md:text-left space-y-2">
-                    <div>
-                      <span className="text-[10px] text-neutral-400 font-extrabold uppercase tracking-wider">Property Booked</span>
-                      <h3 className="font-extrabold text-neutral-800 text-base">{res.listing?.houseName}</h3>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs font-semibold text-neutral-700 bg-neutral-50 border border-neutral-100 p-3 rounded-xl">
-                      <div className="flex flex-col gap-0.5">
-                        <span className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider">Guest Name</span>
-                        <span>{res.user?.name}</span>
-                      </div>
-                      <div className="flex flex-col gap-0.5">
-                        <span className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider">Guest Contact</span>
-                        <span className="truncate">{res.user?.email}</span>
-                      </div>
-                      <div className="flex flex-col gap-0.5">
-                        <span className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider">Dates</span>
-                        <span>{new Date(res.checkIn).toLocaleDateString()} - {new Date(res.checkOut).toLocaleDateString()}</span>
-                      </div>
-                      <div className="flex flex-col gap-0.5">
-                        <span className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider">Guests</span>
-                        <span>{res.guests}</span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="text-center md:text-right shrink-0 flex flex-col gap-2 items-center md:items-end justify-center md:border-l md:border-neutral-100 md:pl-8 py-3">
-                    <span className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider">Payout Amount</span>
-                    <span className="text-lg font-black text-neutral-800">Rs {res.totalPrice}</span>
-                    
-                    {res.status === 'pending' ? (
-                      <div className="flex gap-1.5 mt-1.5">
-                        <button
-                          onClick={() => handleUpdateStatus(res._id, 'confirmed')}
-                          className="bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold text-[10px] px-3.5 py-1.5 rounded-full uppercase tracking-wider cursor-pointer"
-                        >
-                          Approve
-                        </button>
-                        <button
-                          onClick={() => handleUpdateStatus(res._id, 'cancelled')}
-                          className="bg-rose-500 hover:bg-rose-600 text-white font-extrabold text-[10px] px-3.5 py-1.5 rounded-full uppercase tracking-wider cursor-pointer"
-                        >
-                          Decline
-                        </button>
-                      </div>
-                    ) : (
-                      <span className={`font-bold text-[10px] px-3.5 py-1 rounded-full uppercase tracking-wider border ${
-                        res.status === 'confirmed'
-                          ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
-                          : 'bg-rose-50 text-rose-500 border-rose-100'
-                      }`}>
-                        {res.status === 'confirmed' ? 'Approved' : 'Declined'}
-                      </span>
-                    )}
-                  </div>
+          <div className="space-y-8">
+            {/* New Pending Requests */}
+            {pendingRequests.length > 0 && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 border-b border-rose-100 pb-2">
+                  <h3 className="font-extrabold text-neutral-800 text-lg">New Incoming Requests</h3>
+                  <span className="bg-rose-500 text-white text-xs font-black px-2.5 py-0.5 rounded-full shrink-0">
+                    {pendingRequests.length}
+                  </span>
                 </div>
-              );
-            })}
+                <div className="space-y-4 animate-fade-in">
+                  {pendingRequests.map(res => renderReservationCard(res))}
+                </div>
+              </div>
+            )}
+
+            {/* Historical Reservations */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 border-b border-neutral-200 pb-2">
+                <h3 className="font-extrabold text-neutral-800 text-lg">Stays & Reservation History</h3>
+                <span className="bg-neutral-200 text-neutral-600 text-xs font-black px-2.5 py-0.5 rounded-full shrink-0">
+                  {reservationHistory.length}
+                </span>
+              </div>
+              {reservationHistory.length === 0 ? (
+                <div className="text-center py-8 bg-white border border-neutral-100 rounded-3xl text-sm text-neutral-400">
+                  No historical or processed stays found.
+                </div>
+              ) : (
+                <div className="space-y-4 animate-fade-in">
+                  {reservationHistory.map(res => renderReservationCard(res))}
+                </div>
+              )}
+            </div>
           </div>
         )
       )}

@@ -30,12 +30,8 @@ const ListingDetail = () => {
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingMessage, setBookingMessage] = useState(null);
   
-  // Payment states
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [cardName, setCardName] = useState('');
-  const [cardNumber, setCardNumber] = useState('');
-  const [cardExpiry, setCardExpiry] = useState('');
-  const [cardCvv, setCardCvv] = useState('');
+  // Confirm Modal state
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   // Add Review states
   const [newRating, setNewRating] = useState(5);
@@ -121,7 +117,7 @@ const ListingDetail = () => {
 
       const data = await res.json();
       if (res.ok) {
-        setShowPaymentModal(false);
+        setShowConfirmModal(false);
         alert('Reservation request submitted successfully! Redirecting to your bookings.');
         navigate('/dashboard?tab=bookings');
       } else {
@@ -456,7 +452,7 @@ const ListingDetail = () => {
                     navigate('/login');
                     return;
                   }
-                  setShowPaymentModal(true);
+                  setShowConfirmModal(true);
                 }}
                 disabled={bookingLoading || nights <= 0}
                 className="w-full py-3 bg-gradient-to-r from-rose-500 to-red-600 text-white font-extrabold rounded-xl shadow-md shadow-rose-500/20 hover:brightness-105 active:scale-[0.98] transition cursor-pointer mb-4 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
@@ -494,136 +490,93 @@ const ListingDetail = () => {
         </div>
       </div>
 
-      {/* Mock Checkout Payment Modal */}
-      {showPaymentModal && (
+      {/* Confirm Reservation Modal */}
+      {showConfirmModal && (
         <div className="fixed inset-0 z-50 overflow-y-auto bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 md:p-8 shadow-2xl relative border border-neutral-100 animate-fade-in space-y-6">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 md:p-8 shadow-2xl relative border border-neutral-100 animate-fade-in space-y-6 text-left">
             
             {/* Modal Title */}
             <div className="flex justify-between items-center pb-3 border-b border-neutral-100">
-              <h3 className="text-lg font-black text-neutral-800">Checkout Payment</h3>
+              <h3 className="text-lg font-black text-neutral-800">Confirm Reservation</h3>
               <button
-                onClick={() => setShowPaymentModal(false)}
+                onClick={() => setShowConfirmModal(false)}
                 className="w-8 h-8 rounded-full bg-neutral-100 hover:bg-neutral-200 flex items-center justify-center text-neutral-600 transition cursor-pointer"
               >
                 <i className="fa-solid fa-xmark text-sm"></i>
               </button>
             </div>
 
-            {/* Price breakdown summary */}
-            <div className="bg-neutral-50 p-4 rounded-2xl border border-neutral-100 text-xs font-semibold text-neutral-600 space-y-2">
-              <span className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider block mb-1">Billing Summary</span>
-              <div className="flex justify-between">
-                <span>Lodging ({nights} nights)</span>
-                <span>Rs {lodgingTotal}</span>
+            {/* Stay details */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-4">
+                <img
+                  src={listing.photos && listing.photos.length > 0 ? `http://localhost:3000${listing.photos[0]}` : 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?auto=format&fit=crop&w=600&q=80'}
+                  className="w-20 h-16 object-cover rounded-xl border border-neutral-200"
+                />
+                <div>
+                  <h4 className="font-extrabold text-neutral-800 text-sm line-clamp-1">{listing.houseName}</h4>
+                  <p className="text-xs text-neutral-500">{listing.location}</p>
+                </div>
               </div>
-              <div className="flex justify-between">
-                <span>Cleaning & Service Fees</span>
-                <span>Rs {cleaningFee + serviceFee}</span>
+
+              {/* Reservation summary details */}
+              <div className="grid grid-cols-2 gap-3 text-xs font-semibold text-neutral-700 bg-neutral-50 border border-neutral-100 p-3 rounded-xl">
+                <div>
+                  <span className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider block">Check-in</span>
+                  <span>{new Date(checkIn).toLocaleDateString()}</span>
+                </div>
+                <div>
+                  <span className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider block">Check-out</span>
+                  <span>{new Date(checkOut).toLocaleDateString()}</span>
+                </div>
+                <div className="col-span-2">
+                  <span className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider block">Guests</span>
+                  <span>{guests} {guests === 1 ? 'guest' : 'guests'}</span>
+                </div>
               </div>
-              <div className="flex justify-between text-sm font-extrabold text-neutral-800 pt-2 border-t border-neutral-200">
-                <span>Total Amount Due</span>
-                <span>Rs {grantTotal}</span>
+
+              {/* Pricing summary */}
+              <div className="bg-neutral-50 p-4 rounded-xl border border-neutral-100 text-xs font-semibold text-neutral-600 space-y-2">
+                <span className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider block mb-1">Price Summary</span>
+                <div className="flex justify-between">
+                  <span>Rs {listing.price} x {nights} nights</span>
+                  <span>Rs {lodgingTotal}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Cleaning & Service Fees</span>
+                  <span>Rs {cleaningFee + serviceFee}</span>
+                </div>
+                <div className="flex justify-between text-sm font-extrabold text-neutral-800 pt-2 border-t border-neutral-200">
+                  <span>Total Est. Price</span>
+                  <span>Rs {grantTotal}</span>
+                </div>
               </div>
             </div>
 
-            {/* Mock Card Form */}
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleBookingSubmit();
-              }}
-              className="space-y-4 text-left"
-            >
-              <div className="flex flex-col">
-                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider mb-1">Cardholder Name</label>
-                <input
-                  type="text"
-                  placeholder="e.g. John Doe"
-                  value={cardName}
-                  onChange={(e) => setCardName(e.target.value)}
-                  required
-                  className="w-full px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 outline-none transition"
-                />
-              </div>
+            {/* Explanation Note */}
+            <div className="bg-amber-50 border border-amber-100 rounded-xl p-3.5 flex items-start gap-2.5 text-xs text-amber-800">
+              <i className="fa-solid fa-circle-info mt-0.5 text-amber-500 shrink-0"></i>
+              <p className="leading-relaxed">
+                This is a reservation request. You will <strong>not be charged yet</strong>. The host will review your request, and once approved, you can complete the payment online or choose pay offline.
+              </p>
+            </div>
 
-              <div className="flex flex-col">
-                <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider mb-1">Card Number</label>
-                <input
-                  type="text"
-                  placeholder="1234 5678 1234 5678"
-                  maxLength="19"
-                  value={cardNumber}
-                  onChange={(e) => {
-                    const v = e.target.value.replace(/\s?/g, '').replace(/[^0-9]/g, '');
-                    const matches = v.match(/\d{4,16}/g);
-                    const match = matches && matches[0] || '';
-                    const parts = [];
-                    for (let i=0, len=match.length; i<len; i+=4) {
-                      parts.push(match.substring(i, i+4));
-                    }
-                    if (parts.length > 0) {
-                      setCardNumber(parts.join(' '));
-                    } else {
-                      setCardNumber(v);
-                    }
-                  }}
-                  required
-                  className="w-full px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 outline-none transition"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col">
-                  <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider mb-1">Expiry Date</label>
-                  <input
-                    type="text"
-                    placeholder="MM/YY"
-                    maxLength="5"
-                    value={cardExpiry}
-                    onChange={(e) => {
-                      const v = e.target.value.replace(/[^0-9]/g, '');
-                      if (v.length >= 2) {
-                        setCardExpiry(v.substring(0, 2) + '/' + v.substring(2, 4));
-                      } else {
-                        setCardExpiry(v);
-                      }
-                    }}
-                    required
-                    className="w-full px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 outline-none transition text-center"
-                  />
-                </div>
-                <div className="flex flex-col">
-                  <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-wider mb-1">CVV Code</label>
-                  <input
-                    type="password"
-                    placeholder="123"
-                    maxLength="3"
-                    value={cardCvv}
-                    onChange={(e) => setCardCvv(e.target.value.replace(/[^0-9]/g, ''))}
-                    required
-                    className="w-full px-4 py-2.5 bg-neutral-50 border border-neutral-200 rounded-xl text-sm focus:bg-white focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 outline-none transition text-center"
-                  />
-                </div>
-              </div>
-
-              <div className="pt-3 flex gap-3">
-                <button
-                  type="submit"
-                  disabled={bookingLoading}
-                  className="flex-1 py-3 bg-rose-500 hover:bg-rose-600 text-white font-extrabold rounded-xl shadow-md shadow-rose-500/20 hover:scale-[1.01] active:scale-[0.99] transition cursor-pointer text-sm disabled:opacity-50"
-                >
-                  {bookingLoading ? 'Processing...' : `Pay Rs ${grantTotal}`}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowPaymentModal(false)}
-                  className="px-5 py-3 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 font-extrabold rounded-xl text-sm transition cursor-pointer"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
+            {/* Action buttons */}
+            <div className="flex gap-3">
+              <button
+                onClick={handleBookingSubmit}
+                disabled={bookingLoading}
+                className="flex-1 py-3 bg-rose-500 hover:bg-rose-600 text-white font-extrabold rounded-xl shadow-md shadow-rose-500/20 hover:scale-[1.01] active:scale-[0.99] transition cursor-pointer text-sm disabled:opacity-50"
+              >
+                {bookingLoading ? 'Submitting...' : 'Send Request'}
+              </button>
+              <button
+                onClick={() => setShowConfirmModal(false)}
+                className="px-5 py-3 bg-neutral-100 hover:bg-neutral-200 text-neutral-700 font-extrabold rounded-xl text-sm transition cursor-pointer"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
       )}

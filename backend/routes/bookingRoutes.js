@@ -7,5 +7,6 @@ router.post('/', protect, restrictTo('user'), bookingController.createBooking);
 router.get('/my-trips', protect, restrictTo('user'), bookingController.getUserBookings);
 router.get('/reservations', protect, restrictTo('host'), bookingController.getHostReservations);
 router.patch('/:id/status', protect, restrictTo('host'), bookingController.updateBookingStatus);
+router.patch('/:id/pay', protect, restrictTo('user'), bookingController.payBooking);
 
 module.exports = router;
